@@ -51,7 +51,7 @@ final class SonarHipChatMessageBuilder implements HipChatMessageBuilder {
 				.count();
 		long issuesBlockers = issues.stream().filter(i -> i.severity().equals(Severity.BLOCKER)).count();
 		List<Issue> issuesResolved = Lists.newArrayList(projectIssues.resolvedIssues());
-		NotificationColor color = determineNotificationColor(issuesResolved.size(), issuesNew, issues.size());
+
 		Velocity.init();
 
 		VelocityContext context = new VelocityContext();
@@ -67,6 +67,7 @@ final class SonarHipChatMessageBuilder implements HipChatMessageBuilder {
 		StringWriter writer = new StringWriter();
 		Velocity.evaluate(context, writer, "TemplateName", template);
 
+		NotificationColor color = determineNotificationColor(issuesResolved.size(), issuesNew, issues.size(), issuesBlockers);
 		return createJsonMessage(writer.toString(), color);
 	}
 
@@ -74,13 +75,14 @@ final class SonarHipChatMessageBuilder implements HipChatMessageBuilder {
 		return settings.getString(SonarHipChatProperties.MESSAGE_TEMPLATE);
 	}
 
-	private NotificationColor determineNotificationColor(int resolved, long newIssues, int totalIssues) {
-		if (resolved > 0 && newIssues == 0) {
-			return NotificationColor.green;
-		}
-		else if (newIssues > 0 || totalIssues > 0) {
+	private NotificationColor determineNotificationColor(int resolved, long newIssues, int totalIssues, long totalBlockers) {
+		if ( totalBlockers > 0 ) {
 			return NotificationColor.red;
+		} else if (newIssues > 0 ) {
+			return NotificationColor.red;
+		} else if ( totalIssues > 0 ) {
+			return NotificationColor.yellow;
 		}
-		return NotificationColor.gray;
+		return NotificationColor.green;
 	}
 }
